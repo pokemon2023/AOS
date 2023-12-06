@@ -1,0 +1,569 @@
+/*Q1.Demonstrate the use of atexit() function.*/
+#include <stdio.h>
+#include <stdlib.h>
+void cleanup() 
+{
+    printf("Cleanup function called\n");
+}
+int main() 
+{
+  	atexit(cleanup);
+	printf("Main function started\n");
+	printf("Main function finished\n");
+	return 0;
+}
+
+*********************************************************
+/*Q2.Write a C program to demonstrates the different behaviour that can be seen
+with automatic, global, register, static and volatile variables (Use setjmp() and
+longjmp() system call).*/
+#include <setjmp.h>
+#include <stdio.h>
+jmp_buf buf;
+int global_variable = 0;
+
+int register_variable = 1;
+
+static int static_variable = 2;
+
+volatile int volatile_variable = 3;
+
+int automatic_variable = 4;
+
+void func()
+{
+    printf("\nWelcome to kaveri\n");
+
+global_variable = 10;
+register_variable = 11;
+static_variable = 12;
+volatile_variable = 13;
+automatic_variable = 14;
+
+ 
+    
+    longjmp(buf, 1);
+ 
+    printf("Geek2\n");
+}
+ 
+int main()
+{
+    
+    if (setjmp(buf)){
+        printf("\nAfter longjmp:\n");
+        printf("Global: %d\n", global_variable);
+        printf("Register: %d\n", register_variable);
+        printf("Static: %d\n", static_variable);
+        printf("Volatile: %d\n", volatile_variable);
+        printf("Automatic: %d\n", automatic_variable);
+    }
+    else {
+       printf("\nBefore longjmp:\n");
+        printf("Global: %d\n", global_variable);
+        printf("Register: %d\n", register_variable);
+        printf("Static: %d\n", static_variable);
+        printf("Volatile: %d\n", volatile_variable);
+        printf("Automatic: %d\n", automatic_variable);
+        func();
+    }
+    return 0;
+}
+*********************************************************************************
+/*Q3.Write a C program to get and set the resource limits such as files, memory
+associated with a process*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/resource.h>
+
+int main() {
+    struct rlimit rlim;
+
+    
+    if (getrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+        printf("Current soft limit for maximum number of open files: %ld\n", rlim.rlim_cur);
+        printf("Current hard limit for maximum number of open files: %ld\n", rlim.rlim_max);
+    } else {
+        perror("getrlimit");
+        return 1;
+    }
+
+    
+    rlim.rlim_cur = 1024; 
+
+    if (setrlimit(RLIMIT_NOFILE, &rlim) == 0) {
+        printf("New soft limit for maximum number of open files set to %ld\n", rlim.rlim_cur);
+    } else {
+        perror("setrlimit");
+        return 1;
+    }
+
+    return 0;
+}
+*********************************************************************************
+/*Q4.Write a C program that print the exit status of a terminated child process*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+int main() {
+    pid_t child_pid;
+    int status;
+
+  
+    child_pid = fork();
+
+    if (child_pid < 0) {
+        perror("fork");
+        exit(1);
+    }
+
+    if (child_pid == 0) {
+       
+        printf("Child process (PID %d) is running.\n", getpid());
+      
+        sleep(1);
+        exit(42); 
+    } else {
+       
+        printf("Parent process (PID %d) waiting for child (PID %d) to terminate...\n", getpid(), child_pid);
+
+       
+        wait(&status);
+
+        if (WIFEXITED(status)) {
+            printf("Child process (PID %d) terminated with exit status: %d\n", child_pid, WEXITSTATUS(status));
+        }
+    }
+
+    return 0;
+}
+********************************************************************************
+/*Q5.Write a C program that catches the ctrl-c (SIGINT) signal for the first time and
+display the appropriate message and exits on pressing ctrl-c again.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+int ctrl_c_pressed = 0;
+
+void sigint_handler(int signum) {
+    if (ctrl_c_pressed == 0) {
+        printf("Ctrl-C pressed. Press Ctrl-C again to exit.\n");
+        ctrl_c_pressed = 1;
+    } else {
+        printf("Ctrl-C pressed again. Exiting...\n");
+        exit(0);
+    }
+}
+
+int main() {
+    signal(SIGINT, sigint_handler);
+
+    while (1) {
+        
+    }
+
+    return 0;
+}
+************************************************************************************************
+/*Q6.Write a C program which creates a child process and child process catches a
+signal SIGHUP, SIGINT and SIGQUIT. The Parent process send a SIGHUP
+or SIGINT signal after every 3 seconds, at the end of 15 second parent send
+SIGQUIT signal to child and child terminates by displaying message "My
+Papa has Killed me!!!”.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+volatile int terminateChild = 0;
+void child_signal_handler(int signum) 
+{
+    if (signum == SIGHUP)
+	 {
+        printf("Child received SIGHUP from Parent.\n");
+         } 
+	else if (signum == SIGINT) 
+		{
+                     printf("Child received SIGINT from Parent.\n");
+                }
+}
+void child_quit_handler(int signum)
+{
+    printf("My Papa has Killed me!!!\n");
+    exit(0);
+}
+
+int main() 
+{
+    pid_t child_pid;
+
+   
+    child_pid = fork();
+
+    if (child_pid == -1) 
+	{
+        perror("fork");
+        exit(1);
+        }
+
+    if (child_pid == 0) 
+	{
+        
+        signal(SIGHUP, child_signal_handler);
+        signal(SIGINT, child_signal_handler);
+        signal(SIGQUIT, child_quit_handler);
+
+        while (!terminateChild) 
+	{
+            
+            sleep(1);
+        }
+        }
+	 else 
+	{
+        
+        sleep(3);
+        kill(child_pid, SIGHUP);
+
+        sleep(3);
+        kill(child_pid, SIGINT);
+
+        sleep(9); 
+
+        
+        kill(child_pid, SIGQUIT);
+        terminateChild = 1;
+        wait(NULL);
+        }
+
+    return 0;
+}
+**************************************************************
+/*Q7.Write a C program to send SIGALRM signal by child process to parent
+process and parent process make a provision to catch the signal and display
+alarm is fired.(Use Kill, fork, signal and sleep system call)*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+
+void alarm_handler(int signum)
+ {
+    printf("Alarm is fired!\n");
+ }
+
+int main() 
+{
+    pid_t child_pid;
+
+    // Create a child process
+    child_pid = fork();
+
+    if (child_pid == -1) 
+	{
+        perror("fork");
+        exit(1);
+         }
+
+    if (child_pid == 0) 
+	{
+        // This is the child process
+        sleep(2); // Wait for 2 seconds
+        kill(getppid(), SIGALRM); // Send SIGALRM to the parent process
+        } 
+	else 
+	{
+        // This is the parent process
+        signal(SIGALRM, alarm_handler); // Set up the signal handler for SIGALRM
+
+        while (1)
+	 {
+            // Parent is running, waiting for the SIGALRM signal
+            sleep(1);
+         }
+       }
+
+    return 0;
+}
+**************************************************************
+/*Q8.Write a C program that illustrates suspending and resuming processes using
+signals.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+
+int main() 
+{
+    pid_t child_pid;
+
+    // Create a child process
+    child_pid = fork();
+
+    if (child_pid == -1) 
+     {
+        perror("fork");
+        exit(1);
+     }
+
+    if (child_pid == 0) 
+	{
+        // This is the child process
+        printf("Child process (PID=%d) is running.\n", getpid());
+
+        while (1) 
+	{
+            printf("Child process is working...\n");
+            sleep(1);
+        }
+       } 
+	else 
+	{
+        // This is the parent process
+        printf("Parent process (PID=%d) is running.\n", getpid());
+        sleep(3); // Let the child process run for a few seconds
+
+        // Suspend the child process using SIGSTOP
+        printf("Parent is suspending the child process...\n");
+        kill(child_pid, SIGSTOP);
+
+        sleep(3); // Let the child process remain suspended
+
+        // Resume the child process using SIGCONT
+        printf("Parent is resuming the child process...\n");
+        kill(child_pid, SIGCONT);
+
+        sleep(3); // Let the child process run again
+
+        // Terminate the child process
+        printf("Parent is terminating the child process...\n");
+        kill(child_pid, SIGTERM);
+        }
+
+    return 0;
+}
+
+
+**************************************************************
+/*Q9.Write a C program which create a child process which catch a signal sighup,
+sigint and sigquit. The Parent process send a sighup or sigint signal after every
+3 seconds, at the end of 30 second parent send sigquit signal to child and child
+terminates my displaying message “My DADDY has Killed me!!!”.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+// Global flag to keep track of whether it's time to send SIGQUIT to child
+volatile int terminateChild = 0;
+
+// Signal handler function for SIGHUP and SIGINT in the child process
+void child_signal_handler(int signum) 
+{
+    if (signum == SIGHUP)
+	 {
+           printf("Child received SIGHUP from Parent.\n");
+        } else if (signum == SIGINT)
+	 {
+             printf("Child received SIGINT from Parent.\n");
+         }
+}
+
+// Signal handler function for SIGQUIT in the child process
+void child_quit_handler(int signum)
+{
+    printf("My DADDY has Killed me!!!\n");
+    exit(0);
+}
+
+int main() 
+{
+    pid_t child_pid;
+
+    // Create a child process
+    child_pid = fork();
+
+    if (child_pid == -1) 
+	{
+        perror("fork");
+        exit(1);
+        }
+
+    if (child_pid == 0) 
+	{
+        // This is the child process
+        signal(SIGHUP, child_signal_handler);
+        signal(SIGINT, child_signal_handler);
+        signal(SIGQUIT, child_quit_handler);
+
+        while (!terminateChild) 
+	{
+            // Child is running
+            sleep(1);
+        }
+        } 
+	else 
+	{
+            // This is the parent process
+              for (int i = 0; i < 10; i++) 
+		{ // Send SIGHUP/SIGINT every 3 seconds, a total of 30 seconds
+                  sleep(3);
+                  if (i % 2 == 0) 
+	           {
+                      kill(child_pid, SIGHUP);
+                  } 
+	         else
+	         {
+                     kill(child_pid, SIGINT);
+                  }
+               }
+
+        // Send SIGQUIT to the child to terminate it
+        kill(child_pid, SIGQUIT);
+        terminateChild = 1;
+        wait(NULL);
+    }
+
+    return 0;
+}
+
+
+**************************************************************
+/*Q10.Write a C program to implement the following unix/linux command (use fork,
+pipe and exec system call). Your program should block the signal Ctrl-C and
+Ctrl-\ signal during the execution. i. Ls –l | wc –l*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+int main() 
+{
+    int pipe_fd[2];
+    pid_t ls_pid, wc_pid;
+
+    // Create a pipe
+    if (pipe(pipe_fd) == -1) {
+        perror("pipe");
+        exit(1);
+    }
+
+    // Block Ctrl-C and Ctrl-\ signals
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+
+    // Fork the first child process to run 'ls -l'
+    if ((ls_pid = fork()) == -1) {
+        perror("fork");
+        exit(1);
+    }
+
+    if (ls_pid == 0) {
+        // Child process 1: 'ls -l'
+        close(pipe_fd[0]); // Close the read end of the pipe
+
+        // Redirect stdout to the pipe
+        dup2(pipe_fd[1], STDOUT_FILENO);
+
+        // Execute 'ls -l'
+        execlp("ls", "ls", "-l", NULL);
+        perror("execlp ls");
+        exit(1);
+    }
+
+    // Fork the second child process to run 'wc -l'
+    if ((wc_pid = fork()) == -1) {
+        perror("fork");
+        exit(1);
+    }
+
+    if (wc_pid == 0) {
+        // Child process 2: 'wc -l'
+        close(pipe_fd[1]); // Close the write end of the pipe
+
+        // Redirect stdin to the pipe
+        dup2(pipe_fd[0], STDIN_FILENO);
+
+        // Execute 'wc -l'
+        execlp("wc", "wc", "-l", NULL);
+        perror("execlp wc");
+        exit(1);
+    }
+
+    // Close both ends of the pipe in the parent process
+    close(pipe_fd[0]);
+    close(pipe_fd[1]);
+
+    // Wait for child processes to finish
+    wait(NULL);
+    wait(NULL);
+
+    return 0;
+}
+**************************************************************
+/*Q11.Write a C program which creates a child process to run linux/ unix command
+or any user defined program. The parent process set the signal handler for
+death of child signal and Alarm signal. If a child process does not complete its
+execution in 5 second then parent process kills child process.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+void child_handler(int signum) {
+    if (signum == SIGCHLD) {
+        printf("Child process terminated.\n");
+    }
+}
+
+void alarm_handler(int signum) {
+    if (signum == SIGALRM) {
+        printf("Child process execution time exceeded. Killing the child.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main() {
+    pid_t pid;
+    int status;
+
+    // Set up signal handlers
+    signal(SIGCHLD, child_handler);
+    signal(SIGALRM, alarm_handler);
+
+    // Create a child process
+    if ((pid = fork()) < 0) {
+        perror("Fork error");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        // Child process
+        // Replace "your_command" with the command or program you want to run
+        execlp("ls", "ls", (char *)NULL);
+        perror("Exec error");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+        // Set an alarm for 5 seconds
+        alarm(5);
+
+        // Wait for the child process to complete
+        waitpid(pid, &status, 0);
+
+        // Cancel the alarm
+        alarm(0);
+
+        printf("Parent process exiting.\n");
+    }
+
+    return 0;
+}
+*********************************************************************
