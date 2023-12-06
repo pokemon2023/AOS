@@ -1,0 +1,150 @@
+/*Q1. Display all the files from current directory which are created in particular  month  */
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+
+// Array of month names
+const char *month_names[] = {
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+};
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <month_number>\n", argv[0]);
+        return 1;
+    }
+
+    int target_month = atoi(argv[1]);
+   
+    if (target_month < 1 || target_month > 12) {
+        fprintf(stderr, "Invalid month number. Please provide a number between 1 and 12.\n");
+        return 2;
+    }
+
+    struct tm current_time;
+    time_t now;
+    time(&now);
+    localtime_r(&now, &current_time);
+
+    DIR *dir = opendir(".");
+   
+    if (dir == NULL) {
+        perror("opendir");
+        return 3;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        struct stat fileStat;
+
+        if (stat(entry->d_name, &fileStat) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        struct tm file_time;
+        localtime_r(&fileStat.st_mtime, &file_time);
+
+        if (file_time.tm_mon + 1 == target_month) {
+            char formatted_time[100];
+            strftime(formatted_time, sizeof(formatted_time), "%b %Y", &file_time);
+
+            printf("%s (%s)\n", entry->d_name, formatted_time);
+        }
+    }
+
+    closedir(dir);
+
+    return 0;
+}
+
+/*Q2.Write a C program which create a child process which catch a signal sighup,
+sigint and sigquit. The Parent process send a sighup or sigint signal after every
+3 seconds, at the end of 30 second parent send sigquit signal to child and child
+terminates my displaying message “My DADDY has Killed me!!!”.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+// Global flag to keep track of whether it's time to send SIGQUIT to child
+volatile int terminateChild = 0;
+
+// Signal handler function for SIGHUP and SIGINT in the child process
+void child_signal_handler(int signum) 
+{
+    if (signum == SIGHUP)
+	 {
+           printf("Child received SIGHUP from Parent.\n");
+        } else if (signum == SIGINT)
+	 {
+             printf("Child received SIGINT from Parent.\n");
+         }
+}
+
+// Signal handler function for SIGQUIT in the child process
+void child_quit_handler(int signum)
+{
+    printf("My DADDY has Killed me!!!\n");
+    exit(0);
+}
+
+int main() 
+{
+    pid_t child_pid;
+
+    // Create a child process
+    child_pid = fork();
+
+    if (child_pid == -1) 
+	{
+        perror("fork");
+        exit(1);
+        }
+
+    if (child_pid == 0) 
+	{
+        // This is the child process
+        signal(SIGHUP, child_signal_handler);
+        signal(SIGINT, child_signal_handler);
+        signal(SIGQUIT, child_quit_handler);
+
+        while (!terminateChild) 
+	{
+            // Child is running
+            sleep(1);
+        }
+        } 
+	else 
+	{
+            // This is the parent process
+              for (int i = 0; i < 10; i++) 
+		{ // Send SIGHUP/SIGINT every 3 seconds, a total of 30 seconds
+                  sleep(3);
+                  if (i % 2 == 0) 
+	           {
+                      kill(child_pid, SIGHUP);
+                  } 
+	         else
+	         {
+                     kill(child_pid, SIGINT);
+                  }
+               }
+
+        // Send SIGQUIT to the child to terminate it
+        kill(child_pid, SIGQUIT);
+        terminateChild = 1;
+        wait(NULL);
+    }
+
+    return 0;
+}
+

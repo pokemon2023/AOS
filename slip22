@@ -1,0 +1,93 @@
+/* Q1. Write a C Program that demonstrates redirection of standard output to a file.   */
+
+#include <stdio.h>
+
+int main() {
+    // Redirection: stdout will be written to "output.txt"
+    freopen("redirect_assi11.txt", "w", stdout);
+
+    // Now, anything printed to stdout will go to "output.txt"
+    printf("This will be written to output file with named as  redirect_assi11.txt\n");
+    printf("Hello, World!  This text is written with the help of code.\n");
+    printf("Hello, Abhishek Awate!\n");
+
+    // Close the redirected output file
+    fclose(stdout);
+
+    return 0;
+}
+
+/*Q2.Write a C program to implement the following unix/linux command (use fork,
+pipe and exec system call). Your program should block the signal Ctrl-C and
+Ctrl-\ signal during the execution. i. Ls –l | wc –l*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+int main() 
+{
+    int pipe_fd[2];
+    pid_t ls_pid, wc_pid;
+
+    // Create a pipe
+    if (pipe(pipe_fd) == -1) {
+        perror("pipe");
+        exit(1);
+    }
+
+    // Block Ctrl-C and Ctrl-\ signals
+    signal(SIGINT, SIG_IGN);
+    signal(SIGQUIT, SIG_IGN);
+
+    // Fork the first child process to run 'ls -l'
+    if ((ls_pid = fork()) == -1) {
+        perror("fork");
+        exit(1);
+    }
+
+    if (ls_pid == 0) {
+        // Child process 1: 'ls -l'
+        close(pipe_fd[0]); // Close the read end of the pipe
+
+        // Redirect stdout to the pipe
+        dup2(pipe_fd[1], STDOUT_FILENO);
+
+        // Execute 'ls -l'
+        execlp("ls", "ls", "-l", NULL);
+        perror("execlp ls");
+        exit(1);
+    }
+
+    // Fork the second child process to run 'wc -l'
+    if ((wc_pid = fork()) == -1) {
+        perror("fork");
+        exit(1);
+    }
+
+    if (wc_pid == 0) {
+        // Child process 2: 'wc -l'
+        close(pipe_fd[1]); // Close the write end of the pipe
+
+        // Redirect stdin to the pipe
+        dup2(pipe_fd[0], STDIN_FILENO);
+
+        // Execute 'wc -l'
+        execlp("wc", "wc", "-l", NULL);
+        perror("execlp wc");
+        exit(1);
+    }
+
+    // Close both ends of the pipe in the parent process
+    close(pipe_fd[0]);
+    close(pipe_fd[1]);
+
+    // Wait for child processes to finish
+    wait(NULL);
+    wait(NULL);
+
+    return 0;
+}
+
+

@@ -1,0 +1,87 @@
+/*Q1. Write a C program to find whether a given file is present in current directory  or not */
+
+
+#include<stdio.h>
+#include<unistd.h>
+
+int main(int argc,char *argv[]){
+	if(access(argv[1],F_OK)==0)
+		printf("File %s exists.",argv[1]);
+	else
+		printf("File not exists.");
+	return 0;
+}
+
+/*Q2.Write a C program which creates a child process and child process catches a
+signal SIGHUP, SIGINT and SIGQUIT. The Parent process send a SIGHUP
+or SIGINT signal after every 3 seconds, at the end of 15 second parent send
+SIGQUIT signal to child and child terminates by displaying message "My
+Papa has Killed me!!!”.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+volatile int terminateChild = 0;
+void child_signal_handler(int signum) 
+{
+    if (signum == SIGHUP)
+	 {
+        printf("Child received SIGHUP from Parent.\n");
+         } 
+	else if (signum == SIGINT) 
+		{
+                     printf("Child received SIGINT from Parent.\n");
+                }
+}
+void child_quit_handler(int signum)
+{
+    printf("My Papa has Killed me!!!\n");
+    exit(0);
+}
+
+int main() 
+{
+    pid_t child_pid;
+
+   
+    child_pid = fork();
+
+    if (child_pid == -1) 
+	{
+        perror("fork");
+        exit(1);
+        }
+
+    if (child_pid == 0) 
+	{
+        
+        signal(SIGHUP, child_signal_handler);
+        signal(SIGINT, child_signal_handler);
+        signal(SIGQUIT, child_quit_handler);
+
+        while (!terminateChild) 
+	{
+            
+            sleep(1);
+        }
+        }
+	 else 
+	{
+        
+        sleep(3);
+        kill(child_pid, SIGHUP);
+
+        sleep(3);
+        kill(child_pid, SIGINT);
+
+        sleep(9); 
+
+        
+        kill(child_pid, SIGQUIT);
+        terminateChild = 1;
+        wait(NULL);
+        }
+
+    return 0;
+}
+

@@ -1,0 +1,105 @@
+
+Q.1)	Display all the files from current directory whose size is greater that n Bytes Where n is accept from user
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <size_in_bytes>\n", argv[0]);
+        return 1;
+    }
+
+    long long int min_size = atoll(argv[1]);
+
+    if (min_size <= 0) {
+        fprintf(stderr, "Invalid size. Please provide a positive size in bytes.\n");
+        return 2;
+    }
+
+    DIR *dir = opendir(".");
+   
+    if (dir == NULL) {
+        perror("opendir");
+        return 3;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        struct stat fileStat;
+
+        if (stat(entry->d_name, &fileStat) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        if (S_ISREG(fileStat.st_mode) && fileStat.st_size > min_size) {
+            printf("%s\n", entry->d_name);
+        }
+    }
+
+    closedir(dir);
+
+    return 0;
+}
+
+
+/*Q2.Write a C program which creates a child process to run linux/ unix command
+or any user defined program. The parent process set the signal handler for
+death of child signal and Alarm signal. If a child process does not complete its
+execution in 5 second then parent process kills child process.*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+void child_handler(int signum) {
+    if (signum == SIGCHLD) {
+        printf("Child process terminated.\n");
+    }
+}
+
+void alarm_handler(int signum) {
+    if (signum == SIGALRM) {
+        printf("Child process execution time exceeded. Killing the child.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main() {
+    pid_t pid;
+    int status;
+
+    // Set up signal handlers
+    signal(SIGCHLD, child_handler);
+    signal(SIGALRM, alarm_handler);
+
+    // Create a child process
+    if ((pid = fork()) < 0) {
+        perror("Fork error");
+        exit(EXIT_FAILURE);
+    } else if (pid == 0) {
+        // Child process
+        // Replace "your_command" with the command or program you want to run
+        execlp("ls", "ls", (char *)NULL);
+        perror("Exec error");
+        exit(EXIT_FAILURE);
+    } else {
+        // Parent process
+        // Set an alarm for 5 seconds
+        alarm(5);
+
+        // Wait for the child process to complete
+        waitpid(pid, &status, 0);
+
+        // Cancel the alarm
+        alarm(0);
+
+        printf("Parent process exiting.\n");
+    }
+
+    return 0;
+}

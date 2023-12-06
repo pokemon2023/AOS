@@ -1,0 +1,43 @@
+/*Q1.  Write a C Program that demonstrates redirection of standard output to a file.   */
+
+#include <stdio.h>
+
+int main() {
+    // Redirection: stdout will be written to "output.txt"
+    freopen("redirect_assi11.txt", "w", stdout);
+
+    // Now, anything printed to stdout will go to "output.txt"
+    printf("This will be written to output file with named as  redirect_assi11.txt\n");
+    printf("Hello, World!  This text is written with the help of code.\n");
+    printf("Hello, Abhishek Awate!\n");
+
+    // Close the redirected output file
+    fclose(stdout);
+
+    return 0;
+}
+
+/* Q2. Write a C program that redirects standard output to a file output.txt.
+(use of dup and open system call).  */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int main() {
+    int file_descriptor = open("redirect_assi13.txt", O_WRONLY | O_CREAT | O_TRUNC);
+
+    if (file_descriptor == -1)
+    {
+        perror("Failed to open redirect_assi13.txt");
+        return 1;
+    }
+
+    dup2(file_descriptor, STDOUT_FILENO);
+	close(file_descriptor);
+	printf("This will be written to redirect_assi13.txt\n");
+	dup2(STDOUT_FILENO, STDOUT_FILENO);
+	printf("This will be displayed on the terminal\n");	
+	return 0;
+}

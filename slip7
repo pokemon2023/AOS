@@ -1,0 +1,48 @@
+/* Q1. Write a C Program that demonstrates redirection of standard output to a file.   */
+
+#include <stdio.h>
+
+int main() {
+    // Redirection: stdout will be written to "output.txt"
+    freopen("redirect_assi11.txt", "w", stdout);
+
+    // Now, anything printed to stdout will go to "output.txt"
+    printf("This will be written to output file with named as  redirect_assi11.txt\n");
+    printf("Hello, World!  This text is written with the help of code.\n");
+    printf("Hello, Abhishek Awate!\n");
+
+    // Close the redirected output file
+    fclose(stdout);
+
+    return 0;
+}
+
+/* Q2. Implement the following unix/linux command (use fork, pipe and exec system call)
+ls –l | wc –l  */
+
+
+
+#include<stdio.h>
+#include<unistd.h>
+int main()
+{
+    int fd[2],dupFd;
+    char *filename1 ="ls";
+    char *filename2 ="wc";
+    char *arg1 = "-l";
+    pipe(fd);
+    if(!fork())// return 0 for child process and 1 for parent process
+    {
+        close(1); // 1 for closing stdout
+        dup(fd[1]);
+        close(fd[0]);
+        execlp(filename1,filename1,arg1,NULL);
+    }
+    else
+    {
+        close(0);
+        dup(fd[0]);
+        close(fd[1]);
+        execlp(filename2,filename2,arg1,NULL);
+    }
+}

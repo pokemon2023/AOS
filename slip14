@@ -1,0 +1,100 @@
+
+
+Q.1) Display all the files from current directory whose size is greater that n Bytes Where n is accept from user.
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <sys/stat.h>
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <size_in_bytes>\n", argv[0]);
+        return 1;
+    }
+
+    long long int min_size = atoll(argv[1]);
+
+    if (min_size <= 0) {
+        fprintf(stderr, "Invalid size. Please provide a positive size in bytes.\n");
+        return 2;
+    }
+
+    DIR *dir = opendir(".");
+   
+    if (dir == NULL) {
+        perror("opendir");
+        return 3;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        struct stat fileStat;
+
+        if (stat(entry->d_name, &fileStat) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        if (S_ISREG(fileStat.st_mode) && fileStat.st_size > min_size) {
+            printf("%s\n", entry->d_name);
+        }
+    }
+
+    closedir(dir);
+
+    return 0;
+}
+
+
+Q.2)	Write a C program to find file properties such as inode number, number of hard link, File permissions, File size, File access and modification time and so on of a given file using stat() system call.
+
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <time.h>
+
+void printFileProperties(struct stat stats);
+
+int main()
+{
+    char path[100];
+    struct stat stats;
+
+    printf("Enter source filename : ");
+    scanf("%s", path);
+
+    if (stat(path, &stats) == 0)
+    {
+        printFileProperties(stats);
+    }
+    else
+    {
+        printf("Unable to get file properties.\n");
+        printf("Please check whether '%s' file exists.\n", path);
+    }
+    return 0;
+}
+
+void printFileProperties(struct stat stats)
+{
+    struct tm dt;
+
+    printf("\nFile access: ");
+    if (stats.st_mode & R_OK)
+        printf("read ");
+    if (stats.st_mode & W_OK)
+        printf("write ");
+    if (stats.st_mode & X_OK)
+        printf("execute");
+
+    printf("\nFile size: %d", stats.st_size);
+
+    dt = *(gmtime(&stats.st_ctime));
+    printf("\nCreated on: %d-%d-%d %d:%d:%d", dt.tm_mday, dt.tm_mon, dt.tm_year + 1900, 
+                                              dt.tm_hour, dt.tm_min, dt.tm_sec);
+
+    dt = *(gmtime(&stats.st_mtime));
+    printf("\nModified on: %d-%d-%d %d:%d:%d", dt.tm_mday, dt.tm_mon, dt.tm_year + 1900, 
+                                              dt.tm_hour, dt.tm_min, dt.tm_sec);
+}
+      

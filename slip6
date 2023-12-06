@@ -1,0 +1,115 @@
+/*Q1. Display all the files from current directory which are created in particular  month  */
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+
+// Array of month names
+const char *month_names[] = {
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+};
+
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <month_number>\n", argv[0]);
+        return 1;
+    }
+
+    int target_month = atoi(argv[1]);
+   
+    if (target_month < 1 || target_month > 12) {
+        fprintf(stderr, "Invalid month number. Please provide a number between 1 and 12.\n");
+        return 2;
+    }
+
+    struct tm current_time;
+    time_t now;
+    time(&now);
+    localtime_r(&now, &current_time);
+
+    DIR *dir = opendir(".");
+   
+    if (dir == NULL) {
+        perror("opendir");
+        return 3;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        struct stat fileStat;
+
+        if (stat(entry->d_name, &fileStat) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        struct tm file_time;
+        localtime_r(&fileStat.st_mtime, &file_time);
+
+        if (file_time.tm_mon + 1 == target_month) {
+            char formatted_time[100];
+            strftime(formatted_time, sizeof(formatted_time), "%b %Y", &file_time);
+
+            printf("%s (%s)\n", entry->d_name, formatted_time);
+        }
+    }
+
+    closedir(dir);
+
+    return 0;
+}
+
+
+
+/*Q2. Write a C program to create „n‟ child processes. When all „n‟ child processes terminates, Display total cumulative time children spent in user and kernel mode. */
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/resource.h>
+
+int main() {
+    int i;
+    int n = 5;  
+    struct rusage rusage_child;
+    struct timeval user_time, kernel_time;
+
+    for (i = 0; i < n; i++) {
+        pid_t child_pid = fork();
+
+        if (child_pid == -1) {
+            perror("fork");
+            exit(EXIT_FAILURE);
+        } else if (child_pid == 0) {
+           
+            printf("Child %d is running...\n", i + 1);
+            sleep(2);
+            exit(EXIT_SUCCESS);
+        }
+    }
+    int status;
+    while (n > 0) {
+        pid_t terminated_pid = wait(&status);
+        if (WIFEXITED(status)) {
+            n--;
+        }
+    }
+    getrusage(RUSAGE_CHILDREN, &rusage_child);
+    user_time = rusage_child.ru_utime;
+    kernel_time = rusage_child.ru_stime;
+
+    printf("Total User Time: %ld.%06ld seconds\n", user_time.tv_sec, user_time.tv_usec);
+    printf("Total Kernel Time: %ld.%06ld seconds\n", kernel_time.tv_sec, kernel_time.tv_usec);
+
+    return 0;
+}
+

@@ -1,0 +1,93 @@
+/* Q1 Write a program that illustrates how to execute two commands concurrently with a pipe.  */
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    int pipe_fd[2];
+    pid_t child_pid;
+
+    // Create a pipe
+    if (pipe(pipe_fd) == -1) {
+        perror("Pipe creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Create a child process
+    child_pid = fork();
+
+    if (child_pid == -1) {
+        perror("Fork failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (child_pid == 0) {
+        // Child process
+        close(pipe_fd[1]); // Close the write end of the pipe
+
+        // Redirect standard input to read from the pipe
+        dup2(pipe_fd[0], STDIN_FILENO);
+        close(pipe_fd[0]); // Close the read end of the pipe
+
+        // Execute the second command
+        execlp("grep", "grep", "World", NULL);
+    } else {
+        // Parent process
+        close(pipe_fd[0]); // Close the read end of the pipe
+
+        // Execute the first command and write its output to the pipe
+        FILE* pipe_write = fdopen(pipe_fd[1], "w");
+        if (pipe_write == NULL) {
+            perror("fdopen failed");
+            exit(EXIT_FAILURE);
+        }
+
+        fprintf(pipe_write, "Hello, World!");
+        fclose(pipe_write);
+
+        // Wait for the child process to finish
+        wait(NULL);
+    }
+
+    return 0;
+}
+
+/* Q2. Generate parent process to write unnamed pipe and will read from it  */
+
+
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+
+int main() {
+    int fd[2];
+    pipe(fd);
+
+    pid_t child_pid = fork();
+
+    if (child_pid == -1) {
+        perror("fork");
+        return 1;
+    }
+
+    if (child_pid == 0) {
+       
+
+        char buffer[100];
+        read(fd[0], buffer, sizeof(buffer));
+        printf("Child: Received message: %s\n", buffer);
+        close(fd[0]);
+    } else {
+       
+        close(fd[0]);
+
+        char message[] = "Hello, child!";
+        write(fd[1], message, strlen(message));
+        printf("Parent: Sent message to child.\n");
+        close(fd[1]);
+    }
+
+    return 0;
+}
